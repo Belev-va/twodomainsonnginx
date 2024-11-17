@@ -1,0 +1,79 @@
+version: '3.7'
+
+services:
+
+   revproxy:
+     container_name: revproxy
+     build: nginx_revproxy
+     depends_on:
+       - app1
+       - app2
+     restart: always
+     ports:
+       - 80:80
+     networks:
+       - mynet
+
+
+   db:
+    image: postgres:12
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8n
+      - POSTGRES_DB=n8n
+    restart: unless-stopped
+    networks:
+      - mynet
+
+   app1:
+     container_name: app1
+     depends_on:
+       - db
+     image: docker.n8n.io/n8nio/n8n
+     ports:
+       - "8081:5678"
+     restart: unless-stopped
+     environment:
+       N8N_BASIC_AUTH_ACTIVE: true
+       N8N_BASIC_AUTH_USER: user
+       N8N_BASIC_AUTH_PASSWORD: password
+       DB_TYPE: postgresdb
+       DB_POSTGRESDB_HOST: db
+       DB_POSTGRESDB_PORT: 5432
+       DB_POSTGRESDB_DATABASE: n8n
+       DB_POSTGRESDB_USER: n8n
+       DB_POSTGRESDB_PASSWORD: n8n
+       NODE_FUNCTION_ALLOW_EXTERNAL: axios,qs
+       WORDPRESS_DB_HOST: db1:3306
+       WORDPRESS_DB_USER: wordpress
+       WORDPRESS_DB_PASSWORD: wordpress
+       WORDPRESS_DB_NAME: wordpress
+       N8N_SECURE_COOKIE: false
+     volumes:
+       - n8n_data:/home/node/.n8n
+     networks:
+       - mynet
+
+   app2:
+     container_name: app2
+     image: php:apache
+     ports:
+       - "8082:80"
+     restart: always
+     volumes:
+       - "${PWD}/php_data:/var/www/html/"
+     networks:
+       - mynet
+
+volumes:
+    php_data:
+    db-data:
+    n8n_data:
+networks:
+    mynet:
+
+
+
+
